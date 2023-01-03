@@ -45,7 +45,7 @@ namespace chocolatey.infrastructure.app.commands
                 .Add("n=|name=",
                     "The name of the template to get information about.",
                     option => configuration.TemplateCommand.Name = option.remove_surrounding_quotes().ToLower());
-            // TODO Allow for templates from external path? If PR 1477 is merged
+            // todo: #2570 Allow for templates from an external path? Requires #1477
         }
 
         public virtual void handle_additional_argument_parsing(IList<string> unparsedArguments, ChocolateyConfiguration configuration)
@@ -86,13 +86,13 @@ List information installed templates.
 
 Both manually installed templates and templates installed via
  .template packages are displayed.
- 
+
 NOTE: Available with 0.12.0+."
 );
 
             "chocolatey".Log().Info(ChocolateyLoggers.Important, "Usage");
             "chocolatey".Log().Info(@"
-    choco pin [list]|info [<options/switches>]");
+    choco template [list]|info [<options/switches>]");
 
             "chocolatey".Log().Info(ChocolateyLoggers.Important, "Examples");
             "chocolatey".Log().Info(@"

@@ -1,4 +1,4 @@
-﻿// Copyright © 2017 - 2021 Chocolatey Software, Inc
+// Copyright © 2017 - 2021 Chocolatey Software, Inc
 // Copyright © 2011 - 2017 RealDimensions Software, LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -88,8 +88,11 @@ namespace chocolatey.infrastructure.app
         public static readonly string ChocolateyPackageInfoStoreLocation = _fileSystem.combine_paths(InstallLocation, ".chocolatey");
         public static readonly string ExtensionsLocation = _fileSystem.combine_paths(InstallLocation, "extensions");
         public static readonly string TemplatesLocation = _fileSystem.combine_paths(InstallLocation, "templates");
+        public static readonly string HooksLocation = _fileSystem.combine_paths(InstallLocation, "hooks");
+        public static readonly string HookPackageIdExtension = ".hook";
         public static readonly string ChocolateyCommunityFeedPushSourceOld = "https://chocolatey.org/";
         public static readonly string ChocolateyCommunityFeedPushSource = "https://push.chocolatey.org/";
+        public static readonly string ChocolateyCommunityGalleryUrl = "https://community.chocolatey.org/";
         public static readonly string ChocolateyCommunityFeedSource = "https://community.chocolatey.org/api/v2/";
         public static readonly string ChocolateyLicensedFeedSource = "https://licensedpackages.chocolatey.org/api/v2/";
         public static readonly string ChocolateyLicensedFeedSourceName = "chocolatey.licensed";
@@ -204,6 +207,7 @@ namespace chocolatey.infrastructure.app
             public static readonly string ExitOnRebootDetected = "exitOnRebootDetected";
             public static readonly string LogValidationResultsOnWarnings = "logValidationResultsOnWarnings";
             public static readonly string UsePackageRepositoryOptimizations = "usePackageRepositoryOptimizations";
+            public static readonly string DisableCompatibilityChecks = "disableCompatibilityChecks";
         }
 
         public static class Messages

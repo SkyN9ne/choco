@@ -1,13 +1,13 @@
 ﻿// Copyright © 2017 - 2021 Chocolatey Software, Inc
 // Copyright © 2011 - 2017 RealDimensions Software, LLC
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
-// 
+//
 // You may obtain a copy of the License at
-// 
+//
 // 	http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -120,10 +120,11 @@ namespace chocolatey.tests.infrastructure.filesystem
             }
 
             [Fact]
-            [ExpectedException(typeof(ApplicationException), MatchType = MessageMatch.StartsWith, ExpectedMessage = "Cannot combine a path with")]
             public void Combine_should_error_if_any_path_but_the_primary_contains_colon()
             {
-                FileSystem.combine_paths("C:\\temp", "C:");
+                Assert.That(() => FileSystem.combine_paths("C:\\temp", "C:"),
+                    Throws.TypeOf<ApplicationException>()
+                          .And.Message.StartsWith("Cannot combine a path with"));
             }
         }
 

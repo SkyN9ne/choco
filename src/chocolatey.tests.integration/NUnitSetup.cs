@@ -1,18 +1,20 @@
 ﻿// Copyright © 2017 - 2021 Chocolatey Software, Inc
 // Copyright © 2011 - 2017 RealDimensions Software, LLC
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
-// 
+//
 // You may obtain a copy of the License at
-// 
+//
 // 	http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+[assembly: chocolatey.tests.Categories.Integration]
 
 namespace chocolatey.tests.integration
 {
@@ -47,7 +49,7 @@ namespace chocolatey.tests.integration
 
             base.BeforeEverything();
 
-            // deep copy so we don't have the same configuration and 
+            // deep copy so we don't have the same configuration and
             // don't have to worry about issues using it
             var config = Container.GetInstance<ChocolateyConfiguration>().deep_copy();
             config.Information.PlatformType = Platform.get_platform();
@@ -75,14 +77,14 @@ namespace chocolatey.tests.integration
             var field = typeof(ApplicationParameters).GetField("InstallLocation");
             field.SetValue(null, applicationLocation);
 
-            field = typeof(ApplicationParameters).GetField("LicenseFileLocation");
-            field.SetValue(null, fileSystem.combine_paths(ApplicationParameters.InstallLocation, "license", "chocolatey.license.xml"));
-
             field = typeof(ApplicationParameters).GetField("LoggingLocation");
             field.SetValue(null, fileSystem.combine_paths(ApplicationParameters.InstallLocation, "logs"));
 
             field = typeof(ApplicationParameters).GetField("GlobalConfigFileLocation");
             field.SetValue(null, fileSystem.combine_paths(ApplicationParameters.InstallLocation, "config", "chocolatey.config"));
+
+            field = typeof(ApplicationParameters).GetField("LicenseFileLocation");
+            field.SetValue(null, fileSystem.combine_paths(ApplicationParameters.InstallLocation, "license", "chocolatey.license.xml"));
 
             field = typeof(ApplicationParameters).GetField("PackagesLocation");
             field.SetValue(null, fileSystem.combine_paths(ApplicationParameters.InstallLocation, "lib"));
@@ -98,6 +100,15 @@ namespace chocolatey.tests.integration
 
             field = typeof(ApplicationParameters).GetField("ChocolateyPackageInfoStoreLocation");
             field.SetValue(null, fileSystem.combine_paths(ApplicationParameters.InstallLocation, ".chocolatey"));
+
+            field = typeof(ApplicationParameters).GetField("ExtensionsLocation");
+            field.SetValue(null, fileSystem.combine_paths(ApplicationParameters.HooksLocation, "extensions"));
+
+            field = typeof(ApplicationParameters).GetField("TemplatesLocation");
+            field.SetValue(null, fileSystem.combine_paths(ApplicationParameters.HooksLocation, "templates"));
+
+            field = typeof(ApplicationParameters).GetField("HooksLocation");
+            field.SetValue(null, fileSystem.combine_paths(ApplicationParameters.InstallLocation, "hooks"));
 
             field = typeof(ApplicationParameters).GetField("LockTransactionalInstallFiles");
             field.SetValue(null, false);

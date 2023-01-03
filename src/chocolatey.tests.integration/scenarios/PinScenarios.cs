@@ -1,13 +1,13 @@
-﻿// Copyright © 2017 - 2021 Chocolatey Software, Inc
+// Copyright © 2017 - 2021 Chocolatey Software, Inc
 // Copyright © 2011 - 2017 RealDimensions Software, LLC
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
-// 
+//
 // You may obtain a copy of the License at
-// 
+//
 // 	http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,7 +19,6 @@ namespace chocolatey.tests.integration.scenarios
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using bdddoc.core;
     using chocolatey.infrastructure.app;
     using chocolatey.infrastructure.app.attributes;
     using chocolatey.infrastructure.app.commands;
@@ -27,11 +26,15 @@ namespace chocolatey.tests.integration.scenarios
     using chocolatey.infrastructure.app.domain;
     using chocolatey.infrastructure.commands;
     using chocolatey.infrastructure.results;
-    using NuGet;
+
+    using NUnit.Framework;
+
+    using NuGet.Configuration;
     using Should;
 
     public class PinScenarios
     {
+        [ConcernFor("pin")]
         public abstract class ScenariosBase : TinySpec
         {
             protected IList<PackageResult> Results;
@@ -42,8 +45,8 @@ namespace chocolatey.tests.integration.scenarios
             {
                 Configuration = Scenario.pin();
                 Scenario.reset(Configuration);
-                Scenario.add_packages_to_source_location(Configuration, Configuration.Input + "*" + Constants.PackageExtension);
-                Scenario.add_packages_to_source_location(Configuration, "installpackage*" + Constants.PackageExtension);
+                Scenario.add_packages_to_source_location(Configuration, Configuration.Input + "*" + NuGetConstants.PackageExtension);
+                Scenario.add_packages_to_source_location(Configuration, "installpackage*" + NuGetConstants.PackageExtension);
                 Scenario.install_package(Configuration, "installpackage", "1.0.0");
                 Scenario.install_package(Configuration, "upgradepackage", "1.0.0");
                 Scenario.install_package(Configuration, "hasdependency", "1.0.0");
@@ -63,7 +66,6 @@ namespace chocolatey.tests.integration.scenarios
             }
         }
 
-        [Concern(typeof(ChocolateyPinCommand))]
         public class when_listing_pins_with_no_pins : ScenariosBase
         {
             public override void Context()
@@ -93,7 +95,6 @@ namespace chocolatey.tests.integration.scenarios
             }
         }
 
-        [Concern(typeof(ChocolateyPinCommand))]
         public class when_listing_pins_with_an_existing_pin : ScenariosBase
         {
             public override void Context()
@@ -126,7 +127,6 @@ namespace chocolatey.tests.integration.scenarios
             }
         }
 
-        [Concern(typeof(ChocolateyPinCommand))]
         public class when_listing_pins_with_existing_pins : ScenariosBase
         {
             public override void Context()
@@ -162,7 +162,6 @@ namespace chocolatey.tests.integration.scenarios
             }
         }
 
-        [Concern(typeof(ChocolateyPinCommand))]
         public class when_setting_a_pin_for_an_installed_package : ScenariosBase
         {
             public override void Context()
@@ -185,7 +184,6 @@ namespace chocolatey.tests.integration.scenarios
             }
         }
 
-        [Concern(typeof(ChocolateyPinCommand))]
         public class when_setting_a_pin_for_an_already_pinned_package : ScenariosBase
         {
             public override void Context()
@@ -209,7 +207,6 @@ namespace chocolatey.tests.integration.scenarios
             }
         }
 
-        [Concern(typeof(ChocolateyPinCommand))]
         public class when_setting_a_pin_for_a_non_installed_package : ScenariosBase
         {
             public override void Context()
@@ -224,15 +221,15 @@ namespace chocolatey.tests.integration.scenarios
                 MockLogger.reset();
             }
 
-            [ExpectedException(typeof(ApplicationException), ExpectedMessage = "Unable to find package named 'whatisthis' to pin. Please check to ensure it is installed.")]
             [Fact]
             public void should_throw_an_error_about_not_finding_the_package()
             {
-                Service.run(Configuration);
+                Assert.That(() => Service.run(Configuration),
+                    Throws.TypeOf<ApplicationException>()
+                    .And.Message.EqualTo("Unable to find package named 'whatisthis' to pin. Please check to ensure it is installed."));
             }
         }
 
-        [Concern(typeof(ChocolateyPinCommand))]
         public class when_removing_a_pin_for_a_pinned_package : ScenariosBase
         {
             public override void Context()
@@ -258,7 +255,6 @@ namespace chocolatey.tests.integration.scenarios
             }
         }
 
-        [Concern(typeof(ChocolateyPinCommand))]
         public class when_removing_a_pin_for_an_unpinned_package : ScenariosBase
         {
             public override void Context()
@@ -281,7 +277,6 @@ namespace chocolatey.tests.integration.scenarios
             }
         }
 
-        [Concern(typeof(ChocolateyPinCommand))]
         public class when_removing_a_pin_for_a_non_installed_package : ScenariosBase
         {
             public override void Context()
@@ -296,11 +291,12 @@ namespace chocolatey.tests.integration.scenarios
                 MockLogger.reset();
             }
 
-            [ExpectedException(typeof(ApplicationException), ExpectedMessage = "Unable to find package named 'whatisthis' to pin. Please check to ensure it is installed.")]
             [Fact]
             public void should_throw_an_error_about_not_finding_the_package()
             {
-                Service.run(Configuration);
+                Assert.That(() => Service.run(Configuration),
+                    Throws.TypeOf<ApplicationException>()
+                    .And.Message.EqualTo("Unable to find package named 'whatisthis' to pin. Please check to ensure it is installed."));
             }
         }
     }

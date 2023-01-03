@@ -1,13 +1,13 @@
-﻿// Copyright © 2017 - 2021 Chocolatey Software, Inc
+﻿// Copyright © 2017 - 2022 Chocolatey Software, Inc
 // Copyright © 2011 - 2017 RealDimensions Software, LLC
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
-// 
+//
 // You may obtain a copy of the License at
-// 
+//
 // 	http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -97,13 +97,13 @@ namespace chocolatey.infrastructure.app.services
 
             args.Add("_command_", new ExternalCommandArgument { ArgumentOption = "install", Required = true });
             args.Add("_package_name_", new ExternalCommandArgument
-                {
-                    ArgumentOption = "",
-                    ArgumentValue = PACKAGE_NAME_TOKEN,
-                    QuoteValue = false,
-                    UseValueOnly = true,
-                    Required = true
-                });
+            {
+                ArgumentOption = "",
+                ArgumentValue = PACKAGE_NAME_TOKEN,
+                QuoteValue = false,
+                UseValueOnly = true,
+                Required = true
+            });
         }
 
         /// <summary>
@@ -116,13 +116,13 @@ namespace chocolatey.infrastructure.app.services
             args.Add("_command_", new ExternalCommandArgument { ArgumentOption = "install", Required = true });
             args.Add("_upgrade_", new ExternalCommandArgument { ArgumentOption = "--upgrade", Required = true });
             args.Add("_package_name_", new ExternalCommandArgument
-                {
-                    ArgumentOption = "",
-                    ArgumentValue = PACKAGE_NAME_TOKEN,
-                    QuoteValue = false,
-                    UseValueOnly = true,
-                    Required = true
-                });
+            {
+                ArgumentOption = "",
+                ArgumentValue = PACKAGE_NAME_TOKEN,
+                QuoteValue = false,
+                UseValueOnly = true,
+                Required = true
+            });
         }
 
         /// <summary>
@@ -135,13 +135,13 @@ namespace chocolatey.infrastructure.app.services
             args.Add("_command_", new ExternalCommandArgument { ArgumentOption = "uninstall", Required = true });
             args.Add("_confirm_", new ExternalCommandArgument { ArgumentOption = "-y", Required = true });
             args.Add("_package_name_", new ExternalCommandArgument
-                {
-                    ArgumentOption = "",
-                    ArgumentValue = PACKAGE_NAME_TOKEN,
-                    QuoteValue = false,
-                    UseValueOnly = true,
-                    Required = true
-                });
+            {
+                ArgumentOption = "",
+                ArgumentValue = PACKAGE_NAME_TOKEN,
+                QuoteValue = false,
+                UseValueOnly = true,
+                Required = true
+            });
         }
 
         private void set_common_args(IDictionary<string, ExternalCommandArgument> args)
@@ -163,16 +163,14 @@ namespace chocolatey.infrastructure.app.services
                 UseValueOnly = true,
                 Required = true
             });
-
-
         }
 
-        public SourceType SourceType
+        public string SourceType
         {
-            get { return SourceType.python; }
+            get { return SourceTypes.PYTHON; }
         }
 
-        public void ensure_source_app_installed(ChocolateyConfiguration config, Action<PackageResult> ensureAction)
+        public void ensure_source_app_installed(ChocolateyConfiguration config, Action<PackageResult, ChocolateyConfiguration> ensureAction)
         {
             if (Platform.get_platform() != PlatformType.Windows) throw new NotImplementedException("This source is not supported on non-Windows systems");
 
@@ -233,7 +231,7 @@ namespace chocolatey.infrastructure.app.services
                     return;
                 }
             }
-            
+
             var topLevelPath = string.Empty;
             var python34PathKey = _registryService.get_key(RegistryHive.LocalMachine, "SOFTWARE\\Python\\PythonCore\\3.4\\InstallPath");
             if (python34PathKey != null)
@@ -248,7 +246,7 @@ namespace chocolatey.infrastructure.app.services
                     topLevelPath = python27PathKey.GetValue("", string.Empty).to_string();
                 }
             }
-            
+
             if (string.IsNullOrWhiteSpace(topLevelPath))
             {
                 var binRoot = Environment.GetEnvironmentVariable("ChocolateyBinRoot");
@@ -262,7 +260,7 @@ namespace chocolatey.infrastructure.app.services
             {
                 _exePath = pipPath;
             }
-            
+
             if (string.IsNullOrWhiteSpace(_exePath)) throw new FileNotFoundException("Unable to find pip");
         }
 
@@ -272,7 +270,7 @@ namespace chocolatey.infrastructure.app.services
 
             args = args.Replace(LOG_LEVEL_TOKEN, config.Debug ? "-vvv" : "");
 
-            if (config.CommandName.is_equal_to("intall"))
+            if (config.CommandName.is_equal_to("install"))
             {
                 args = args.Replace(FORCE_TOKEN, config.Force ? "--ignore-installed" : "");
             }
@@ -331,14 +329,14 @@ namespace chocolatey.infrastructure.app.services
             return packageResults;
         }
 
-        public void install_noop(ChocolateyConfiguration config, Action<PackageResult> continueAction)
+        public void install_noop(ChocolateyConfiguration config, Action<PackageResult, ChocolateyConfiguration> continueAction)
         {
             set_executable_path_if_not_set();
             var args = build_args(config, _installArguments);
             this.Log().Info("Would have run '{0} {1}'".format_with(_exePath.escape_curly_braces(), args.escape_curly_braces()));
         }
 
-        public ConcurrentDictionary<string, PackageResult> install_run(ChocolateyConfiguration config, Action<PackageResult> continueAction)
+        public ConcurrentDictionary<string, PackageResult> install_run(ChocolateyConfiguration config, Action<PackageResult, ChocolateyConfiguration> continueAction)
         {
             set_executable_path_if_not_set();
             var args = build_args(config, _installArguments);
@@ -403,7 +401,7 @@ namespace chocolatey.infrastructure.app.services
             return packageResults;
         }
 
-        public ConcurrentDictionary<string, PackageResult> upgrade_noop(ChocolateyConfiguration config, Action<PackageResult> continueAction)
+        public ConcurrentDictionary<string, PackageResult> upgrade_noop(ChocolateyConfiguration config, Action<PackageResult, ChocolateyConfiguration> continueAction)
         {
             set_executable_path_if_not_set();
             var args = build_args(config, _upgradeArguments);
@@ -411,8 +409,13 @@ namespace chocolatey.infrastructure.app.services
             return new ConcurrentDictionary<string, PackageResult>(StringComparer.InvariantCultureIgnoreCase);
         }
 
-        public ConcurrentDictionary<string, PackageResult> upgrade_run(ChocolateyConfiguration config, Action<PackageResult> continueAction, Action<PackageResult> beforeUpgradeAction = null)
+        public ConcurrentDictionary<string, PackageResult> upgrade_run(ChocolateyConfiguration config, Action<PackageResult, ChocolateyConfiguration> continueAction, Action<PackageResult, ChocolateyConfiguration> beforeUpgradeAction = null)
         {
+            if (config.PackageNames.is_equal_to(ApplicationParameters.AllPackages))
+            {
+                throw new NotImplementedException("The all keyword is not available for alternate sources");
+            }
+
             set_executable_path_if_not_set();
             var args = build_args(config, _upgradeArguments);
             var packageResults = new ConcurrentDictionary<string, PackageResult>(StringComparer.InvariantCultureIgnoreCase);
@@ -477,14 +480,14 @@ namespace chocolatey.infrastructure.app.services
             return packageResults;
         }
 
-        public void uninstall_noop(ChocolateyConfiguration config, Action<PackageResult> continueAction)
+        public void uninstall_noop(ChocolateyConfiguration config, Action<PackageResult, ChocolateyConfiguration> continueAction)
         {
             set_executable_path_if_not_set();
             var args = build_args(config, _uninstallArguments);
             this.Log().Info("Would have run '{0} {1}'".format_with(_exePath.escape_curly_braces(), args.escape_curly_braces()));
         }
 
-        public ConcurrentDictionary<string, PackageResult> uninstall_run(ChocolateyConfiguration config, Action<PackageResult> continueAction, Action<PackageResult> beforeUninstallAction = null)
+        public ConcurrentDictionary<string, PackageResult> uninstall_run(ChocolateyConfiguration config, Action<PackageResult, ChocolateyConfiguration> continueAction, Action<PackageResult, ChocolateyConfiguration> beforeUninstallAction = null)
         {
             set_executable_path_if_not_set();
             var args = build_args(config, _uninstallArguments);

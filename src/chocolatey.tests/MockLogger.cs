@@ -1,13 +1,13 @@
 ﻿// Copyright © 2017 - 2021 Chocolatey Software, Inc
 // Copyright © 2011 - 2017 RealDimensions Software, LLC
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
-// 
+//
 // You may obtain a copy of the License at
-// 
+//
 // 	http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,6 +35,7 @@ namespace chocolatey.tests
     {
         public MockLogger()
         {
+            LoggerNames = new HashSet<string>();
         }
 
         public void reset()
@@ -42,6 +43,7 @@ namespace chocolatey.tests
             Messages.Clear();
             this.ResetCalls();
             LogMessagesToConsole = false;
+            LoggerNames.Clear();
         }
 
         public bool contains_message(string expectedMessage)
@@ -80,7 +82,7 @@ namespace chocolatey.tests
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to log messages to console. 
+        /// Gets or sets a value indicating whether to log messages to console.
         /// This is purely used in debugging purposes when it is not clear why a spec is failing.
         /// This should not have any usages in specs in committed code.
         /// </summary>
@@ -90,6 +92,8 @@ namespace chocolatey.tests
         public bool LogMessagesToConsole { get; set; }
 
         private readonly Lazy<ConcurrentDictionary<string, IList<string>>> _messages = new Lazy<ConcurrentDictionary<string, IList<string>>>();
+
+        public HashSet<string> LoggerNames { get; private set; }
 
         public ConcurrentDictionary<string, IList<string>> Messages
         {
@@ -103,6 +107,7 @@ namespace chocolatey.tests
 
         public void InitializeFor(string loggerName)
         {
+            LoggerNames.Add(loggerName);
         }
 
         public void LogMessage(LogLevel logLevel, string message)

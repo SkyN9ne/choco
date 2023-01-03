@@ -1,13 +1,13 @@
 ﻿// Copyright © 2017 - 2021 Chocolatey Software, Inc
 // Copyright © 2011 - 2017 RealDimensions Software, LLC
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
-// 
+//
 // You may obtain a copy of the License at
-// 
+//
 // 	http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,14 +17,18 @@
 namespace chocolatey.tests.infrastructure.app.nuget
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using chocolatey.infrastructure.app.configuration;
     using chocolatey.infrastructure.app.nuget;
     using Moq;
-    using NuGet;
+    using NuGet.Common;
+    using NuGet.Packaging;
+    using NuGet.Protocol;
+    using NuGet.Protocol.Core.Types;
     using Should;
 
-    public class NugetCommonSpecs 
+    public class NugetCommonSpecs
     {
         private class when_gets_remote_repository : TinySpec
         {
@@ -32,7 +36,7 @@ namespace chocolatey.tests.infrastructure.app.nuget
             private readonly Mock<ILogger> nugetLogger = new Mock<ILogger>();
             private readonly Mock<IPackageDownloader> packageDownloader = new Mock<IPackageDownloader>();
             private ChocolateyConfiguration configuration;
-            private IPackageRepository packageRepository;
+            private IEnumerable<SourceRepository> packageRepositories;
 
             public override void Context()
             {
@@ -43,7 +47,7 @@ namespace chocolatey.tests.infrastructure.app.nuget
 
             public override void Because()
             {
-                because = () => packageRepository = NugetCommon.GetRemoteRepository(configuration, nugetLogger.Object, packageDownloader.Object);
+                because = () => packageRepositories = NugetCommon.GetRemoteRepositories(configuration, nugetLogger.Object);
             }
 
             [Fact]
@@ -51,10 +55,10 @@ namespace chocolatey.tests.infrastructure.app.nuget
             {
                 Context();
                 configuration.Sources = null;
-            
+
                 because();
 
-                ((AggregateRepository)packageRepository).Repositories.Count().ShouldEqual(0);
+                packageRepositories.Count().ShouldEqual(0);
             }
         }
     }

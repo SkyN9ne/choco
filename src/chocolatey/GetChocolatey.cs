@@ -1,4 +1,4 @@
-﻿// Copyright © 2017 - 2021 Chocolatey Software, Inc
+﻿// Copyright © 2017 - 2022 Chocolatey Software, Inc
 // Copyright © 2011 - 2017 RealDimensions Software, LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,12 +32,17 @@ namespace chocolatey
     using infrastructure.registration;
     using infrastructure.synchronization;
     using log4net;
+
 #if !NoResources
+
     using resources;
+
 #endif
+
     using Assembly = infrastructure.adapters.Assembly;
     using IFileSystem = infrastructure.filesystem.IFileSystem;
     using ILog = infrastructure.logging.ILog;
+    using System.Linq;
 
     // ReSharper disable InconsistentNaming
 
@@ -65,48 +70,9 @@ namespace chocolatey
             return GlobalMutex.enter(() => set_up(initializeLogging), 10);
         }
 
-        private static ResolveEventHandler _handler = null;
         private static void add_assembly_resolver()
         {
-            _handler = (sender, args) =>
-            {
-                var requestedAssembly = new AssemblyName(args.Name);
-
-                // There are things that are ILMerged into Chocolatey. Anything with
-                // the right public key except licensed should use the choco/chocolatey assembly
-#if FORCE_CHOCOLATEY_OFFICIAL_KEY
-                var chocolateyPublicKey = ApplicationParameters.OfficialChocolateyPublicKey;
-#else
-                var chocolateyPublicKey = ApplicationParameters.UnofficialChocolateyPublicKey;
-#endif
-                if (requestedAssembly.get_public_key_token().is_equal_to(chocolateyPublicKey)
-                    && !requestedAssembly.Name.is_equal_to(ApplicationParameters.LicensedChocolateyAssemblySimpleName)
-                    && !requestedAssembly.Name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase))
-                {
-                    return typeof(Lets).Assembly;
-                }
-
-                try
-                {
-                    if (requestedAssembly.get_public_key_token().is_equal_to(chocolateyPublicKey)
-                        && requestedAssembly.Name.is_equal_to(ApplicationParameters.LicensedChocolateyAssemblySimpleName))
-                    {
-                        _logger.Debug("Resolving reference to chocolatey.licensed...");
-                        return AssemblyResolution.resolve_or_load_assembly(
-                            ApplicationParameters.LicensedChocolateyAssemblySimpleName,
-                            requestedAssembly.get_public_key_token(),
-                            ApplicationParameters.LicensedAssemblyLocation).UnderlyingType;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    "chocolatey".Log().Warn("Unable to load chocolatey.licensed assembly. {0}".format_with(ex.Message));
-                }
-
-                return null;
-            };
-
-            AppDomain.CurrentDomain.AssemblyResolve += _handler;
+            AppDomain.CurrentDomain.AssemblyResolve += AssemblyResolution.resolve_extension_or_merged_assembly;
         }
     }
 
@@ -277,7 +243,7 @@ namespace chocolatey
         /// Registers a container component. Does not require a dependency on Simple Injector.
         /// Will override existing component if registered.
         /// </summary>
-        /// <typeparam name="Service">The type of the ervice.</typeparam>
+        /// <typeparam name="Service">The type of the service.</typeparam>
         /// <param name="implementationCreator">The implementation creator.</param>
         /// <returns>This <see cref="GetChocolatey"/> instance</returns>
         /// <remarks>
@@ -433,7 +399,7 @@ namespace chocolatey
         public ChocolateyConfiguration GetConfiguration()
         {
             ensure_environment();
-            
+
             // ensure_original_configuration() already calls create_configuration()
             // so no need to repeat, just grab the result
             var configuration = ensure_original_configuration(

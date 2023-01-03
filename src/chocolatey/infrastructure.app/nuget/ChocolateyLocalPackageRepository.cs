@@ -1,13 +1,13 @@
 ﻿// Copyright © 2017 - 2021 Chocolatey Software, Inc
 // Copyright © 2011 - 2017 RealDimensions Software, LLC
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
-// 
+//
 // You may obtain a copy of the License at
-// 
+//
 // 	http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,10 +22,14 @@ namespace chocolatey.infrastructure.app.nuget
     using System.Linq;
     using System.Runtime.Versioning;
     using System.Threading;
-    using NuGet;
+    using filesystem;
+    using NuGet.Common;
+    using NuGet.Packaging;
+    using NuGet.ProjectManagement;
+    using NuGet.Versioning;
 
     // ReSharper disable InconsistentNaming
-
+    /*
     public class ChocolateyLocalPackageRepository : LocalPackageRepository
     {
         public ChocolateyLocalPackageRepository(string physicalPath)
@@ -52,7 +56,7 @@ namespace chocolatey.infrastructure.app.nuget
         {
             string packageFilePath = GetPackageFilePath(package);
             FileSystem.AddFileWithCheck(packageFilePath, package.GetStream);
-            // allow the file to finish being written 
+            // allow the file to finish being written
             Thread.Sleep(200);
             if (PackageSaveMode.HasFlag(PackageSaveModes.Nuspec))
             {
@@ -72,7 +76,7 @@ namespace chocolatey.infrastructure.app.nuget
             }
         }
 
-        private string GetManifestFilePath(string packageId, SemanticVersion version)
+        private string GetManifestFilePath(string packageId, NuGetVersion version)
         {
             string packageDirectory = PathResolver.GetPackageDirectory(packageId, version);
             string path2 = packageDirectory + Constants.ManifestExtension;
@@ -81,4 +85,5 @@ namespace chocolatey.infrastructure.app.nuget
     }
 
     // ReSharper restore InconsistentNaming
+    */
 }

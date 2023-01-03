@@ -1,13 +1,13 @@
-﻿// Copyright © 2017 - 2021 Chocolatey Software, Inc
+﻿// Copyright © 2017 - 2022 Chocolatey Software, Inc
 // Copyright © 2011 - 2017 RealDimensions Software, LLC
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
-// 
+//
 // You may obtain a copy of the License at
-// 
+//
 // 	http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,10 +19,12 @@ namespace chocolatey.infrastructure.app.services
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using chocolatey.infrastructure.app.attributes;
     using configuration;
     using domain;
     using results;
 
+    [MultiService]
     public interface ISourceRunner
     {
         /// <summary>
@@ -31,14 +33,14 @@ namespace chocolatey.infrastructure.app.services
         /// <value>
         ///   The type of the source.
         /// </value>
-        SourceType SourceType { get; }
+        string SourceType { get; }
 
         /// <summary>
         ///   Ensures the application that controls a source is installed
         /// </summary>
         /// <param name="config">The configuration.</param>
         /// <param name="ensureAction">The action to continue with as part of the install</param>
-        void ensure_source_app_installed(ChocolateyConfiguration config, Action<PackageResult> ensureAction);
+        void ensure_source_app_installed(ChocolateyConfiguration config, Action<PackageResult, ChocolateyConfiguration> ensureAction);
 
         /// <summary>
         ///     Retrieve the listed packages from the source feed cout
@@ -65,7 +67,7 @@ namespace chocolatey.infrastructure.app.services
         /// </summary>
         /// <param name="config">The configuration.</param>
         /// <param name="continueAction">The action to continue with for each noop test install.</param>
-        void install_noop(ChocolateyConfiguration config, Action<PackageResult> continueAction);
+        void install_noop(ChocolateyConfiguration config, Action<PackageResult, ChocolateyConfiguration> continueAction);
 
         /// <summary>
         ///   Installs packages from the source feed
@@ -73,14 +75,14 @@ namespace chocolatey.infrastructure.app.services
         /// <param name="config">The configuration.</param>
         /// <param name="continueAction">The action to continue with when install is successful.</param>
         /// <returns>results of installs</returns>
-        ConcurrentDictionary<string, PackageResult> install_run(ChocolateyConfiguration config, Action<PackageResult> continueAction);
+        ConcurrentDictionary<string, PackageResult> install_run(ChocolateyConfiguration config, Action<PackageResult, ChocolateyConfiguration> continueAction);
 
         /// <summary>
         ///   Run upgrade in noop mode
         /// </summary>
         /// <param name="config">The configuration.</param>
         /// <param name="continueAction">The action to continue with for each noop test upgrade.</param>
-        ConcurrentDictionary<string, PackageResult> upgrade_noop(ChocolateyConfiguration config, Action<PackageResult> continueAction);
+        ConcurrentDictionary<string, PackageResult> upgrade_noop(ChocolateyConfiguration config, Action<PackageResult, ChocolateyConfiguration> continueAction);
 
         /// <summary>
         ///   Upgrades packages from NuGet related feeds
@@ -89,14 +91,14 @@ namespace chocolatey.infrastructure.app.services
         /// <param name="continueAction">The action to continue with when upgrade is successful.</param>
         /// <param name="beforeUpgradeAction">The action (if any) to run on any currently installed package before triggering the upgrade.</param>
         /// <returns>results of installs</returns>
-        ConcurrentDictionary<string, PackageResult> upgrade_run(ChocolateyConfiguration config, Action<PackageResult> continueAction, Action<PackageResult> beforeUpgradeAction = null);
+        ConcurrentDictionary<string, PackageResult> upgrade_run(ChocolateyConfiguration config, Action<PackageResult, ChocolateyConfiguration> continueAction, Action<PackageResult, ChocolateyConfiguration> beforeUpgradeAction = null);
 
         /// <summary>
         ///   Run uninstall in noop mode
         /// </summary>
         /// <param name="config">The configuration.</param>
         /// <param name="continueAction">The action to continue with for each noop test upgrade.</param>
-        void uninstall_noop(ChocolateyConfiguration config, Action<PackageResult> continueAction);
+        void uninstall_noop(ChocolateyConfiguration config, Action<PackageResult, ChocolateyConfiguration> continueAction);
 
         /// <summary>
         ///   Uninstalls packages from NuGet related feeds
@@ -105,6 +107,6 @@ namespace chocolatey.infrastructure.app.services
         /// <param name="continueAction">The action to continue with when upgrade is successful.</param>
         /// <param name="beforeUninstallAction">The action (if any) to run on any currently installed package before triggering the uninstall.</param>
         /// <returns>results of installs</returns>
-        ConcurrentDictionary<string, PackageResult> uninstall_run(ChocolateyConfiguration config, Action<PackageResult> continueAction, Action<PackageResult> beforeUninstallAction = null);
+        ConcurrentDictionary<string, PackageResult> uninstall_run(ChocolateyConfiguration config, Action<PackageResult, ChocolateyConfiguration> continueAction, Action<PackageResult, ChocolateyConfiguration> beforeUninstallAction = null);
     }
 }

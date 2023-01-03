@@ -1,13 +1,13 @@
-// Copyright © 2017 - 2021 Chocolatey Software, Inc
+﻿// Copyright © 2017 - 2021 Chocolatey Software, Inc
 // Copyright © 2011 - 2017 RealDimensions Software, LLC
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
-// 
+//
 // You may obtain a copy of the License at
-// 
+//
 // 	http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,12 +19,15 @@ namespace chocolatey.tests.integration
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
+
     using chocolatey.infrastructure.app;
     using chocolatey.infrastructure.app.configuration;
     using chocolatey.infrastructure.app.domain;
     using chocolatey.infrastructure.app.services;
     using chocolatey.infrastructure.commands;
     using chocolatey.infrastructure.filesystem;
+    using chocolatey.infrastructure.guards;
     using chocolatey.infrastructure.platforms;
 
     public class Scenario
@@ -49,6 +52,7 @@ namespace chocolatey.tests.integration
             string badPackagesPath = get_package_install_path() + "-bad";
             string backupPackagesPath = get_package_install_path() + "-bkp";
             string shimsPath = ApplicationParameters.ShimsLocation;
+            string hooksPath = ApplicationParameters.HooksLocation;
 
             _fileSystem.delete_directory_if_exists(config.CacheLocation, recursive: true, overrideAttributes: true);
             _fileSystem.delete_directory_if_exists(config.Sources, recursive: true, overrideAttributes: true);
@@ -58,6 +62,7 @@ namespace chocolatey.tests.integration
             _fileSystem.delete_directory_if_exists(backupPackagesPath, recursive: true, overrideAttributes: true);
             _fileSystem.delete_directory_if_exists(_fileSystem.combine_paths(get_top_level(), ".chocolatey"), recursive: true, overrideAttributes: true);
             _fileSystem.delete_directory_if_exists(_fileSystem.combine_paths(get_top_level(), "extensions"), recursive: true, overrideAttributes: true);
+            _fileSystem.delete_directory_if_exists(hooksPath, recursive: true, overrideAttributes: true);
 
             _fileSystem.create_directory(config.CacheLocation);
             _fileSystem.create_directory(config.Sources);
@@ -83,6 +88,86 @@ namespace chocolatey.tests.integration
             }
         }
 
+        public static void add_machine_source(ChocolateyConfiguration config, string name, string path = null, int priority = 0, bool createDirectory = true)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                path = _fileSystem.combine_paths(get_top_level(), "PrioritySources", name);
+            }
+
+            if (createDirectory)
+            {
+                _fileSystem.create_directory_if_not_exists(path);
+            }
+
+            var newSource = new MachineSourceConfiguration
+            {
+                Name = name,
+                Key = path,
+                Priority = priority
+            };
+            config.MachineSources.Add(newSource);
+        }
+
+        public static string add_packages_to_priority_source_location(ChocolateyConfiguration config, string pattern, int priority = 0, string name = null)
+        {
+            if (name == null)
+            {
+                name = "Priority" + priority;
+            }
+
+            var prioritySourceDirectory = _fileSystem.combine_paths(get_top_level(), "PrioritySources", name);
+
+            var machineSource = config.MachineSources.FirstOrDefault(m => m.Name.is_equal_to(name));
+
+            if (machineSource == null)
+            {
+                machineSource = new MachineSourceConfiguration
+                {
+                    Name = name,
+                    Key = prioritySourceDirectory,
+                    Priority = priority
+                };
+                config.MachineSources.Add(machineSource);
+            }
+            else
+            {
+                prioritySourceDirectory = machineSource.Key;
+            }
+
+            _fileSystem.create_directory_if_not_exists(prioritySourceDirectory);
+
+            var contextDir = _fileSystem.combine_paths(get_top_level(), "context");
+            var files = _fileSystem.get_files(contextDir, pattern, SearchOption.AllDirectories).or_empty_list_if_null().ToList();
+
+            if (files.Count == 0)
+            {
+                throw new ApplicationException("No files matching the pattern {0} could be found!".format_with(pattern));
+            }
+
+            foreach (var file in files)
+            {
+                _fileSystem.copy_file(_fileSystem.get_full_path(file), _fileSystem.combine_paths(prioritySourceDirectory, _fileSystem.get_file_name(file)), overwriteExisting: true);
+            }
+
+            return machineSource.Name;
+        }
+
+        public static void remove_packages_from_destination_location(ChocolateyConfiguration config, string pattern)
+        {
+            if (!_fileSystem.directory_exists(config.Sources))
+            {
+                return;
+            }
+
+            var files = _fileSystem.get_files(config.Sources, pattern, SearchOption.AllDirectories);
+
+            foreach (var file in files)
+            {
+                _fileSystem.delete_file(file);
+            }
+        }
+
         public static void install_package(ChocolateyConfiguration config, string packageId, string version)
         {
             if (_service == null)
@@ -93,6 +178,7 @@ namespace chocolatey.tests.integration
 
             installConfig.PackageNames = packageId;
             installConfig.Version = version;
+            installConfig.CommandName = CommandNameType.install.to_string();
             _service.install_run(installConfig);
 
             NUnitSetup.MockLogger.Messages.Clear();
@@ -117,6 +203,8 @@ namespace chocolatey.tests.integration
 
         private static ChocolateyConfiguration baseline_configuration()
         {
+            delete_test_package_directories();
+
             // note that this does not mean an empty configuration. It does get influenced by
             // prior commands, so ensure that all items go back to the default values here
             var config = NUnitSetup.Container.GetInstance<ChocolateyConfiguration>();
@@ -177,6 +265,7 @@ namespace chocolatey.tests.integration
             config.PinCommand.Name = string.Empty;
             config.PinCommand.Command = PinCommandType.unknown;
             config.ListCommand.IdOnly = false;
+            config.MachineSources.Clear();
 
             return config;
         }
@@ -213,6 +302,16 @@ namespace chocolatey.tests.integration
             return config;
         }
 
+        public static ChocolateyConfiguration info()
+        {
+            var config = baseline_configuration();
+            config.CommandName = "info";
+            config.Verbose = true;
+            config.ListCommand.Exact = true;
+
+            return config;
+        }
+
         public static ChocolateyConfiguration pin()
         {
             var config = baseline_configuration();
@@ -227,6 +326,22 @@ namespace chocolatey.tests.integration
             config.CommandName = "pack";
 
             return config;
+        }
+
+        private static void delete_test_package_directories()
+        {
+            var topDirectory = get_top_level();
+
+            var directoriesToClean = new[]
+            {
+                Path.Combine(topDirectory, "PackageOutput"),
+                Path.Combine(topDirectory, "PrioritySources")
+            };
+
+            foreach (var directory in directoriesToClean)
+            {
+                _fileSystem.delete_directory_if_exists(directory, recursive: true);
+            }
         }
     }
 }

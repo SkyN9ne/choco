@@ -71,7 +71,8 @@ namespace chocolatey.infrastructure.app.services
                 }
             }
 
-            var pkgInfo = _packageInfoService.get_package_information(packageResult.Package);
+
+            var pkgInfo = _packageInfoService.get_package_information(packageResult.PackageMetadata);
             if (pkgInfo.RegistrySnapshot == null)
             {
                 this.Log().Info(" Skipping auto uninstaller - No registry snapshot.");
@@ -110,7 +111,7 @@ namespace chocolatey.infrastructure.app.services
         {
             var userProvidedUninstallArguments = string.Empty;
             var userOverrideUninstallArguments = false;
-            var package = packageResult.Package;
+            var package = packageResult.PackageMetadata;
             if (package != null)
             {
                 if (!PackageUtility.package_is_a_dependency(config, package.Id) || config.ApplyInstallArgumentsToDependencies)
@@ -122,7 +123,7 @@ namespace chocolatey.infrastructure.app.services
                 }
             }
 
-            //todo: if there is a local package, look to use it in the future
+            //todo: #2562 if there is a local package, look to use it in the future
             if (string.IsNullOrWhiteSpace(key.UninstallString))
             {
                 this.Log().Info(" Skipping auto uninstaller - '{0}' does not have an uninstall string.".format_with(!string.IsNullOrEmpty(key.DisplayName.to_string()) ? key.DisplayName.to_string().escape_curly_braces() : "The application"));
@@ -187,7 +188,7 @@ namespace chocolatey.infrastructure.app.services
 
             if (!key.HasQuietUninstall)
             {
-                //todo: ultimately we should merge keys
+                //todo: #2563 ultimately we should merge keys
                 uninstallArgs += " " + installer.build_uninstall_command_arguments();
             }
 
@@ -217,8 +218,8 @@ namespace chocolatey.infrastructure.app.services
                 if (!config.Information.IsLicensedVersion)
                 {
                     this.Log().Warn(@"
-  Did you know licensed versions of Chocolatey are 95% effective with 
-   Automatic Uninstaller due to licensed enhancements and Package 
+  Did you know licensed versions of Chocolatey are 95% effective with
+   Automatic Uninstaller due to licensed enhancements and Package
    Synchronizer?
 ");
                 }
@@ -271,7 +272,7 @@ namespace chocolatey.infrastructure.app.services
             }
             else
             {
-                this.Log().Info(() => " Auto uninstaller has successfully uninstalled {0} or detected previous uninstall.".format_with(packageResult.Package.Id));
+                this.Log().Info(() => " Auto uninstaller has successfully uninstalled {0} or detected previous uninstall.".format_with(packageResult.PackageMetadata.Id));
             }
         }
 

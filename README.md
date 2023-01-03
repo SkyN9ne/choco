@@ -33,9 +33,10 @@ You can just call me choco.
 <!-- /TOC -->
 
 ## Build Status
-| TeamCity                                                                                                                                         | AppVeyor                                                                                                                                                                          | GitHub Action                                                                                                                                                                                                  |
-|--------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [![TeamCity Build Status](https://img.shields.io/teamcity/codebetter/bt429.svg)](http://teamcity.codebetter.com/viewType.html?buildTypeId=bt429) | [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/lv4u2v0v02dj3svu/branch/develop?svg=true)](https://ci.appveyor.com/project/chocolatey/choco/branch/develop)   | [![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/chocolatey/choco/Chocolatey%20Builds/develop?logo=github)]((https://github.com/chocolatey/choco/actions/workflows/build.yml)) |
+
+| GitHub Action                                                                                                                                                                                                  |
+|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/chocolatey/choco/Chocolatey%20Builds/develop?logo=github)](https://github.com/chocolatey/choco/actions/workflows/build.yml)  |
 
 ## Chat Room
 Come join in the conversation about Chocolatey in our Community Chat Room.
@@ -87,7 +88,7 @@ Apache 2.0 - see [LICENSE](https://github.com/chocolatey/choco/blob/master/LICEN
  * If you are having issue with a package, please see [Request Package Fixes or Updates / Become a maintainer of an existing package](https://docs.chocolatey.org/en-us/community-repository/users/package-triage-process).
  * If you are looking for packages to be added to the community feed (aka https://community.chocolatey.org/packages), please see [Package Requests](https://docs.chocolatey.org/en-us/community-repository/users/package-triage-process#package-request-package-missing).
 
- 1. Start with [Troubleshooting](https://github.com/chocolatey/choco/wiki/Troubleshooting) and the [FAQ](https://github.com/chocolatey/choco/wiki/ChocolateyFAQs) to see if your question or issue already has an answer.
+ 1. Start with [Troubleshooting](https://docs.chocolatey.org/en-us/troubleshooting) and the [FAQ](https://docs.chocolatey.org/en-us/faqs) to see if your question or issue already has an answer.
  1. If not found or resolved, please follow one of the following avenues:
     * If you are a licensed customer, please see [support](https://chocolatey.org/support). You can also log an issue to [Licensed Issues](https://github.com/chocolatey/chocolatey-licensed-issues) and we will submit issues to all other places on your behalf. Another avenue is to use email support to have us submit tickets and other avenues on your behalf (allowing you to maintain privacy).
     * If it is an enhancement request or issue with the website (the community package repository aka [https://community.chocolatey.org](https://community.chocolatey.org)), please submit the issue to the [Chocolatey.org repo](https://github.com/chocolatey/home).
@@ -126,9 +127,8 @@ There is a `build.bat`/`build.sh` file that creates a necessary generated file n
 #### Windows
 Prerequisites:
 
- * .NET Framework 3.5 (This is a windows feature installation).
- * .NET Framework 4+
- * Visual Studio is helpful for working on source.
+ * .NET Framework 4.8+
+ * Visual Studio 2019+
  * ReSharper is immensely helpful (and there is a `.sln.DotSettings` file to help with code conventions).
 
 Build Process:
@@ -140,39 +140,22 @@ Running the build on Windows should produce an artifact that is tested and ready
 #### Other Platforms
 ##### Prerequisites:
 
- * Install and configure Mono. Mono 5.20 or newer should work, see the Dockerfile for the currently recommended version.
-  * [Debian based](https://www.mono-project.com/docs/getting-started/install/linux/#debian-ubuntu-and-derivatives)
+ * Install and configure Mono. Mono 6.6 or newer should work, see `docker/Dockerfile.linux` for the currently recommended version of Mono.
+    * Linux systems; see [Mono install instructions for Linux](https://www.mono-project.com/download/stable/#download-lin)
+    * Mac systems; see [Mono install instructions for Mac](https://www.mono-project.com/download/stable/#download-mac)
+ * Install .NET 6.0 SDK or newer. This is used in the build scripts.
+    * Linux systems; see [Install .NET on Linux](https://learn.microsoft.com/en-us/dotnet/core/install/linux)
+    * Mac systems; see [Install .NET on macOS](https://learn.microsoft.com/en-us/dotnet/core/install/macos)
+    * This is required for some Dotnet Global Tools used during the Cake build. The .NET Frameworks equivalent builds do not work on Mono.
+ * If building from Git, then having Git 2.22+ installed is required.
+ * MonoDevelop is helpful for working on source.
 
-```sh
-# install prerequisites
-sudo apt install apt-transport-https dirmngr gnupg ca-certificates
-# add the key
-sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
-
-# add the package repository
-# Debian 10
-echo "deb https://download.mono-project.com/repo/debian stable-buster main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
-# Debian 9
-echo "deb https://download.mono-project.com/repo/debian stable-stretch main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
-#Ubuntu 20.04
-echo "deb https://download.mono-project.com/repo/ubuntu stable-focal main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
-# Ubuntu 18.04
-echo "deb https://download.mono-project.com/repo/ubuntu stable-bionic main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
-# Ubuntu 16.04
-echo "deb https://download.mono-project.com/repo/ubuntu stable-xenial main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
-
-# update package indexes
-sudo apt-get update
-# install
-sudo apt-get install mono-devel -y
-```
-
- * Other Linux systems; see [Mono install instructions for Linux](https://www.mono-project.com/download/stable/#download-lin)
- * Xamarin Studio is helpful for working on source.
+##### Before building: 
+ 
  * Consider adding the following to your `~/.profile` (or other relevant dot source file):
 
 ```sh
-# mono
+# Mono
 # http://www.michaelruck.de/2010/03/solving-pkg-config-and-mono-35-profile.html
 # https://cloudgen.wordpress.com/2013/03/06/configure-nant-to-run-under-mono-3-06-beta-for-mac-osx/
 export PKG_CONFIG_PATH=/opt/local/lib/pkgconfig:/Library/Frameworks/Mono.framework/Versions/Current/lib/pkgconfig:$PKG_CONFIG_PATH
@@ -194,7 +177,7 @@ Running the build on Mono produces an artifact similar to Windows but may have m
 ### Installing on Other Platforms:
 
  1. Get a copy of the source code and build.
- 1. Copy (or link) the contents of `./code_drop/chocolatey/console` to your preferred install directory. On Linux, the preferred directory is `/opt/chocolatey`
+ 1. Copy (or link) the contents of `./code_drop/temp/_PublishedApps/choco` to your preferred install directory. On Linux, the preferred directory is `/opt/chocolatey`
  1. Export the `ChocolateyInstall` environment variable, pointing to the install directory the build output was copied too.
  1. Copy `./docker/choco_wrapper` to a directory on the `$PATH`, rename to `choco`, and if the install directory is something else than `/opt/chocolatey`, then edit it to point to the correct path.
 

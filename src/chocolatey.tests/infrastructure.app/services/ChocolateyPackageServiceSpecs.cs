@@ -1,13 +1,13 @@
-﻿// Copyright © 2017 - 2021 Chocolatey Software, Inc
+﻿// Copyright © 2017 - 2022 Chocolatey Software, Inc
 // Copyright © 2011 - 2017 RealDimensions Software, LLC
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
-// 
+//
 // You may obtain a copy of the License at
-// 
+//
 // 	http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,13 +26,14 @@ using chocolatey.infrastructure.filesystem;
 using chocolatey.infrastructure.results;
 using chocolatey.infrastructure.services;
 using Moq;
-using NuGet;
 using NUnit.Framework;
 using Should;
 using IFileSystem = chocolatey.infrastructure.filesystem.IFileSystem;
 
 namespace chocolatey.tests.infrastructure.app.services
 {
+    using NuGet.Packaging;
+
     public class ChocolateyPackageServiceSpecs
     {
         public abstract class ChocolateyPackageServiceSpecsBase : TinySpec
@@ -81,18 +82,18 @@ namespace chocolatey.tests.infrastructure.app.services
                 Configuration.PackageNames = @"C:\test\packages.config";
                 Configuration.Sources = @"C:\test";
 
-                NormalRunner.Setup(r => r.SourceType).Returns(SourceType.normal);
-                FeaturesRunner.Setup(r => r.SourceType).Returns(SourceType.windowsfeatures);
+                NormalRunner.Setup(r => r.SourceType).Returns(SourceTypes.NORMAL);
+                FeaturesRunner.Setup(r => r.SourceType).Returns(SourceTypes.WINDOWS_FEATURES);
 
-                var package = new Mock<IPackage>();
+                var package = new Mock<IPackageMetadata>();
                 var expectedResult = new ConcurrentDictionary<string, PackageResult>();
                 expectedResult.TryAdd("test-feature", new PackageResult(package.Object, "windowsfeatures", null));
 
-                FeaturesRunner.Setup(r => r.install_run(It.IsAny<ChocolateyConfiguration>(), It.IsAny<Action<PackageResult>>()))
+                FeaturesRunner.Setup(r => r.install_run(It.IsAny<ChocolateyConfiguration>(), It.IsAny<Action<PackageResult, ChocolateyConfiguration>>()))
                     .Returns(expectedResult);
-                NormalRunner.Setup(r => r.install_run(It.IsAny<ChocolateyConfiguration>(), It.IsAny<Action<PackageResult>>()))
+                NormalRunner.Setup(r => r.install_run(It.IsAny<ChocolateyConfiguration>(), It.IsAny<Action<PackageResult, ChocolateyConfiguration>>()))
                     .Returns(new ConcurrentDictionary<string, PackageResult>());
-                SourceRunners.AddRange(new []{ NormalRunner.Object, FeaturesRunner.Object });
+                SourceRunners.AddRange(new[] { NormalRunner.Object, FeaturesRunner.Object });
 
                 FileSystem.Setup(f => f.get_full_path(Configuration.PackageNames)).Returns(Configuration.PackageNames);
                 FileSystem.Setup(f => f.file_exists(Configuration.PackageNames)).Returns(true);
@@ -125,20 +126,20 @@ namespace chocolatey.tests.infrastructure.app.services
             [Test]
             public void should_have_called_runner_for_windows_features_source()
             {
-                FeaturesRunner.Verify(r => r.install_run(It.Is<ChocolateyConfiguration>(c => c.PackageNames == "test-feature"), It.IsAny<Action<PackageResult>>()), Times.Once);
+                FeaturesRunner.Verify(r => r.install_run(It.Is<ChocolateyConfiguration>(c => c.PackageNames == "test-feature"), It.IsAny<Action<PackageResult, ChocolateyConfiguration>>()), Times.Once);
             }
 
             [Test]
             public void should_not_have_called_runner_for_windows_features_source_with_other_package_names()
             {
-                FeaturesRunner.Verify(r => r.install_run(It.Is<ChocolateyConfiguration>(c => c.PackageNames != "test-feature"), It.IsAny<Action<PackageResult>>()), Times.Never);
+                FeaturesRunner.Verify(r => r.install_run(It.Is<ChocolateyConfiguration>(c => c.PackageNames != "test-feature"), It.IsAny<Action<PackageResult, ChocolateyConfiguration>>()), Times.Never);
             }
 
             [Test]
             public void should_not_have_called_normal_source_runner_for_non_empty_packages()
             {
                 // The normal source runners will be called with an argument
-                NormalRunner.Verify(r => r.install_run(It.Is<ChocolateyConfiguration>(c => c.PackageNames != string.Empty), It.IsAny<Action<PackageResult>>()), Times.Never);
+                NormalRunner.Verify(r => r.install_run(It.Is<ChocolateyConfiguration>(c => c.PackageNames != string.Empty), It.IsAny<Action<PackageResult, ChocolateyConfiguration>>()), Times.Never);
             }
         }
     }

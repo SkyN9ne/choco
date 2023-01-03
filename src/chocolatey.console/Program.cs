@@ -1,4 +1,4 @@
-﻿// Copyright © 2017 - 2021 Chocolatey Software, Inc
+﻿// Copyright © 2017 - 2022 Chocolatey Software, Inc
 // Copyright © 2011 - 2017 RealDimensions Software, LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,20 +21,27 @@ namespace chocolatey.console
     using System.IO;
     using System.Linq;
     using System.Reflection;
+    using Microsoft.Win32;
+    using chocolatey.infrastructure.information;
     using infrastructure.app;
     using infrastructure.app.builders;
     using infrastructure.app.configuration;
     using infrastructure.app.runners;
     using infrastructure.commandline;
-    using infrastructure.configuration;
     using infrastructure.extractors;
     using infrastructure.licensing;
     using infrastructure.logging;
+    using infrastructure.platforms;
     using infrastructure.registration;
     using infrastructure.tolerance;
+    using SimpleInjector;
+
 #if !NoResources
+
     using resources;
+
 #endif
+
     using Assembly = infrastructure.adapters.Assembly;
     using Console = System.Console;
     using Environment = System.Environment;
@@ -46,6 +53,9 @@ namespace chocolatey.console
         private static void Main(string[] args)
         // ReSharper restore InconsistentNaming
         {
+            ChocolateyConfiguration config = null;
+            ChocolateyLicense license = null;
+
             try
             {
                 add_assembly_resolver();
@@ -57,15 +67,21 @@ namespace chocolatey.console
                 Log4NetAppenderConfiguration.configure(loggingLocation, excludeLoggerNames: ChocolateyLoggers.Trace.to_string());
                 Bootstrap.initialize();
                 Bootstrap.startup();
-                var license = License.validate_license();
+                license = License.validate_license();
                 var container = SimpleInjectorContainer.Container;
 
                 "LogFileOnly".Log().Info(() => "".PadRight(60, '='));
 
-                var config = Config.get_configuration_settings();
+                config = container.GetInstance<ChocolateyConfiguration>();
                 var fileSystem = container.GetInstance<IFileSystem>();
 
                 var warnings = new List<string>();
+
+                if (license.AssemblyLoaded && !is_licensed_assembly_loaded(container))
+                {
+                    license.AssemblyLoaded = false;
+                    license.IsCompatible = false;
+                }
 
                 ConfigurationBuilder.set_up_configuration(
                      args,
@@ -75,6 +91,11 @@ namespace chocolatey.console
                      warning => { warnings.Add(warning); }
                      );
 
+                if (license.AssemblyLoaded && license.is_licensed_version() && !license.IsCompatible && !config.DisableCompatibilityChecks)
+                {
+                    write_warning_for_incompatible_versions();
+                }
+
                 if (config.Features.LogWithoutColor)
                 {
                     ApplicationParameters.Log4NetConfigurationResource = @"chocolatey.infrastructure.logging.log4net.nocolor.config.xml";
@@ -83,7 +104,7 @@ namespace chocolatey.console
 
                 if (!string.IsNullOrWhiteSpace(config.AdditionalLogFileLocation))
                 {
-                  Log4NetAppenderConfiguration.configure_additional_log_file(fileSystem.get_full_path(config.AdditionalLogFileLocation));
+                    Log4NetAppenderConfiguration.configure_additional_log_file(fileSystem.get_full_path(config.AdditionalLogFileLocation));
                 }
 
                 report_version_and_exit_if_requested(args, config);
@@ -104,6 +125,8 @@ namespace chocolatey.console
                         "chocolatey".Log().Info(ChocolateyLoggers.Important, () => "Please run 'choco -?' or 'choco <command> -?' for help menu.");
                     }
                 }
+
+                check_installed_dotnetfx_version();
 
                 if (warnings.Count != 0 && config.RegularOutput)
                 {
@@ -129,7 +152,7 @@ namespace chocolatey.console
 
                 remove_old_chocolatey_exe(fileSystem);
 
-                AssemblyFileExtractor.extract_all_resources_to_relative_directory(fileSystem, Assembly.GetAssembly(typeof(Program)), ApplicationParameters.InstallLocation, new List<string>(), "chocolatey.console", throwError:false);
+                AssemblyFileExtractor.extract_all_resources_to_relative_directory(fileSystem, Assembly.GetAssembly(typeof(Program)), ApplicationParameters.InstallLocation, new List<string>(), "chocolatey.console", throwError: false);
                 //refactor - thank goodness this is temporary, cuz manifest resource streams are dumb
                 IList<string> folders = new List<string>
                     {
@@ -163,6 +186,11 @@ namespace chocolatey.console
             }
             finally
             {
+                if (license != null && license.AssemblyLoaded && license.is_licensed_version() && !license.IsCompatible && config != null && !config.DisableCompatibilityChecks)
+                {
+                    write_warning_for_incompatible_versions();
+                }
+
                 "chocolatey".Log().Debug(() => "Exiting with {0}".format_with(Environment.ExitCode));
 #if DEBUG
                 "chocolatey".Log().Info(() => "Exiting with {0}".format_with(Environment.ExitCode));
@@ -171,6 +199,25 @@ namespace chocolatey.console
                 Bootstrap.shutdown();
                 Environment.Exit(Environment.ExitCode);
             }
+        }
+
+        private static bool is_licensed_assembly_loaded(Container container)
+        {
+            var allExtensions = container.GetAllInstances<ExtensionInformation>();
+
+            foreach (var extension in allExtensions)
+            {
+                if (extension.Name.is_equal_to("chocolatey.licensed"))
+                {
+                    return extension.Status == ExtensionStatus.Enabled || extension.Status == ExtensionStatus.Loaded;
+                }
+            }
+
+            // We will be going by an assumption that it has been loaded in this case.
+            // This is mostly to prevent that the licensed extension won't be disabled
+            // if it has been loaded using old method.
+
+            return true;
         }
 
         private static void warn_on_nuspec_or_nupkg_usage(string[] args, ChocolateyConfiguration config)
@@ -182,49 +229,9 @@ namespace chocolatey.console
             }
         }
 
-        private static ResolveEventHandler _handler = null;
         private static void add_assembly_resolver()
         {
-            _handler = (sender, args) =>
-            {
-                var requestedAssembly = new AssemblyName(args.Name);
-
-#if FORCE_CHOCOLATEY_OFFICIAL_KEY
-                var chocolateyPublicKey = ApplicationParameters.OfficialChocolateyPublicKey;
-#else
-                var chocolateyPublicKey = ApplicationParameters.UnofficialChocolateyPublicKey;
-#endif
-
-                // There are things that are ILMerged into Chocolatey. Anything with
-                // the right public key except licensed should use the choco/chocolatey assembly
-                if (requestedAssembly.get_public_key_token().is_equal_to(chocolateyPublicKey)
-                    && !requestedAssembly.Name.is_equal_to(ApplicationParameters.LicensedChocolateyAssemblySimpleName)
-                    && !requestedAssembly.Name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase))
-                {
-                    return typeof(ConsoleApplication).Assembly;
-                }
-
-                try
-                {
-                    if (requestedAssembly.get_public_key_token().is_equal_to(chocolateyPublicKey)
-                        && requestedAssembly.Name.is_equal_to(ApplicationParameters.LicensedChocolateyAssemblySimpleName))
-                    {
-                        "chocolatey".Log().Debug(() => "Resolving reference to chocolatey.licensed...");
-                        return AssemblyResolution.resolve_or_load_assembly(
-                            ApplicationParameters.LicensedChocolateyAssemblySimpleName,
-                            requestedAssembly.get_public_key_token(),
-                            ApplicationParameters.LicensedAssemblyLocation).UnderlyingType;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    "chocolatey".Log().Warn("Unable to load chocolatey.licensed assembly. {0}".format_with(ex.Message));
-                }
-
-                return null;
-            };
-
-            AppDomain.CurrentDomain.AssemblyResolve += _handler;
+            AppDomain.CurrentDomain.AssemblyResolve += AssemblyResolution.resolve_extension_or_merged_assembly;
         }
 
         private static void report_version_and_exit_if_requested(string[] args, ChocolateyConfiguration config)
@@ -268,6 +275,53 @@ namespace chocolatey.console
             Console.WriteLine("Press enter to continue...");
             Console.ReadKey();
 #endif
+        }
+
+        private static void write_warning_for_incompatible_versions()
+        {
+            "chocolatey".Log().Warn(
+                ChocolateyLoggers.Important,
+                @"WARNING!
+
+You are running a version of Chocolatey that may not be compatible with
+the currently installed version of the chocolatey.extension package.
+Running Chocolatey with the current version of the chocolatey.extension
+package is an unsupported configuration.
+
+See https://ch0.co/compatibility for more information.
+
+If you are in the process of modifying the chocolatey.extension package,
+you can ignore this warning.
+
+Additionally, you can ignore these warnings by either setting the
+DisableCompatibilityChecks feature:
+
+choco feature enable --name=""'disableCompatibilityChecks'""
+
+Or by passing the --skip-compatibility-checks option when executing a
+command.");
+        }
+
+        private static void check_installed_dotnetfx_version()
+        {
+            if (Platform.get_platform() == PlatformType.Windows)
+            {
+                // https://learn.microsoft.com/en-us/dotnet/framework/migration-guide/how-to-determine-which-versions-are-installed#minimum-version
+                const int NET48RELEASEBUILD = 528040;
+                const string REGKEY = @"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\";
+
+                using (var ndpKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32).OpenSubKey(REGKEY))
+                {
+                    if (ndpKey == null || ndpKey.GetValue("Release") == null || (int)ndpKey.GetValue("Release") < NET48RELEASEBUILD)
+                    {
+                        throw new ApplicationException(
+                            @".NET 4.8 is not installed or may need a reboot to complete installation.
+Please install .NET Framework 4.8 manually and reboot the system.
+Download at 'https://download.visualstudio.microsoft.com/download/pr/2d6bb6b2-226a-4baa-bdec-798822606ff1/8494001c276a4b96804cde7829c04d7f/ndp48-x86-x64-allos-enu.exe'"
+                                .format_with(Environment.NewLine));
+                    }
+                }
+            }
         }
     }
 }

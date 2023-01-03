@@ -1,13 +1,13 @@
 ﻿// Copyright © 2017 - 2021 Chocolatey Software, Inc
 // Copyright © 2011 - 2017 RealDimensions Software, LLC
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
-// 
+//
 // You may obtain a copy of the License at
-// 
+//
 // 	http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -50,7 +50,6 @@ namespace chocolatey.tests.integration.infrastructure.filesystem
             }
         }
 
-        [Category("Integration")]
         public class when_finding_paths_to_executables_with_dotNetFileSystem : DotNetFileSystemSpecsBase
         {
             public override void Because()
@@ -98,7 +97,6 @@ namespace chocolatey.tests.integration.infrastructure.filesystem
             }
         }
 
-        [Category("Integration")]
         public class when_doing_file_system_operations_with_dotNetFileSystem : DotNetFileSystemSpecsBase
         {
             public override void Context()
@@ -190,7 +188,6 @@ namespace chocolatey.tests.integration.infrastructure.filesystem
             }
         }
 
-        [Category("Integration")]
         [WindowsOnly]
         [Platform(Exclude = "Mono")]
         public class when_setting_file_attributes_with_dotNetFileSystem : DotNetFileSystemSpecsBase
@@ -220,7 +217,6 @@ namespace chocolatey.tests.integration.infrastructure.filesystem
             }
         }
 
-        [Category("Integration")]
         public class when_removing_readonly_attributes_with_dotNetFileSystem : DotNetFileSystemSpecsBase
         {
             public override void Context()
@@ -242,7 +238,6 @@ namespace chocolatey.tests.integration.infrastructure.filesystem
             }
         }
 
-        [Category("Integration")]
         public class when_running_fileMove_with_dotNetFileSystem : DotNetFileSystemSpecsBase
         {
             public override void Because()
@@ -273,7 +268,6 @@ namespace chocolatey.tests.integration.infrastructure.filesystem
             }
         }
 
-        [Category("Integration")]
         public class when_running_fileCopy_with_dotNetFileSystem : DotNetFileSystemSpecsBase
         {
             public override void Because()
@@ -307,7 +301,6 @@ namespace chocolatey.tests.integration.infrastructure.filesystem
             }
         }
 
-        [Category("Integration")]
         public class when_running_fileDelete_with_dotNetFileSystem : DotNetFileSystemSpecsBase
         {
             public override void Because()
@@ -330,7 +323,6 @@ namespace chocolatey.tests.integration.infrastructure.filesystem
             }
         }
 
-        [Category("Integration")]
         public class when_running_createDirectory_with_dotNetFileSystem : DotNetFileSystemSpecsBase
         {
             public override void Because()
@@ -350,7 +342,6 @@ namespace chocolatey.tests.integration.infrastructure.filesystem
             }
         }
 
-        [Category("Integration")]
         public class when_running_getFileModDate_with_dotNetFileSystem : DotNetFileSystemSpecsBase
         {
             public override void Because()
